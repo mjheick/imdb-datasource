@@ -63,7 +63,7 @@ class DataIMDb
 				$page = $this->getWebpage('https://www.imdb.com/title/' . $tt . '/');
 				break;
 			case 'mobile_website': // https://m.imdb.com/title/tt1454016/fullcredits/cast
-				$page = $this->getWebpage('https://m.imdb.com/title/' . $tt . '/');
+				$page = $this->getWebpage('https://m.imdb.com/title/' . $tt . '/fullcredits/cast');
 				$data = $this->parseMobileWebpage_Title($page);
 				break;
 			case 'api':
@@ -166,7 +166,9 @@ class DataIMDb
 	private function parseMobileWebpage_Title($page)
 	{
 		$data = array();
-
+		$data['title'] = null;
+		$data['date'] = null;
+		$data['cast'] = null;
 		return $data;
 	}
 
