@@ -135,6 +135,31 @@ class DataIMDb
 
 		}
 
+		// mugshot: <img id="name-poster"[\s\r\n]?(?:[\w\d\s\r\n"\-=]+)src="([\w\d:/\.=\-@,]+)"[\s\r\n]?(?:data-src-x2="([\w\d:/\.=\-@,]+)")*
+		$data['pic'] = null;
+		if (preg_match('/<img id="name-poster"[\s\r\n]?(?:[\w\d\s\r\n"\-=]+)src="([\w\d:\/\.=\-@,]+)"[\s\r\n]?(?:data-src-x2="([\w\d:\/\.=\-@,]+)")*/', $page, $matches) === 1)
+		{
+			if (isset($matches[2]))
+			{
+				$data['pic'] = $matches[2];
+			}
+			else
+			{
+				$data['pic'] = $matches[1];
+			}
+		}
+
+		// all titles on this bio page: tt\d+
+		$data['titles'] = null;
+		if (preg_match('/tt\d+/', $page, $matches) === 1)
+		{
+			$title_index = 0;
+			foreach ($matches as $match)
+			{
+				$
+			}
+		}
+
 		print_r($data);
 
 		return $data;
