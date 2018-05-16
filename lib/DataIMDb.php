@@ -64,6 +64,7 @@ class DataIMDb
 				break;
 			case 'mobile_website':
 				$page = $this->getWebpage('https://m.imdb.com/title/' . $tt . '/');
+				$data = $this->parseMobileWebpage_Title($page);
 				break;
 			case 'api':
 				$this->unimplemented();
@@ -151,16 +152,20 @@ class DataIMDb
 
 		// all titles on this bio page: tt\d+
 		$data['titles'] = null;
-		if (preg_match('/tt\d+/', $page, $matches) === 1)
+		if (preg_match_all('/tt\d+/', $page, $matches) > 0)
 		{
-			$title_index = 0;
-			foreach ($matches as $match)
-			{
-				$
-			}
+			// we need everything in $matches[0]
+			$title_array = $matches[0];
+			$title_array = array_unique($title_array);
+			sort($title_array);
+			$data['titles'] = $title_array;
 		}
+		return $data;
+	}
 
-		print_r($data);
+	private function parseMobileWebpage_Title($page)
+	{
+		$data = array();
 
 		return $data;
 	}
