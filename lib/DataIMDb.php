@@ -165,10 +165,28 @@ class DataIMDb
 
 	private function parseMobileWebpage_Title($page)
 	{
+		//echo $page;
 		$data = array();
+
 		$data['title'] = null;
 		$data['date'] = null;
+		// Lets extract this from the title: <title>([\w\d\s:\-]+)\s+\(([\w\d\s]+)\)\s+-\s+Cast\s+-\s+IMDb<\/title>
+		if (preg_match('/<title>([\w\d\s:\-\.]+)\s+\(([\w\d\s]+)\)\s+-\s+Cast\s+-\s+IMDb<\/title>/', $page, $matches) === 1)
+		{
+			$data['title'] = $matches[1];
+			$data['date'] = $matches[2];
+		}
+
 		$data['cast'] = null;
+		// all cast on this bio page. There should be no other actors
+		if (preg_match_all('/nm\d+/', $page, $matches) > 0)
+		{
+			// we need everything in $matches[0]
+			$name_array = $matches[0];
+			$name_array = array_unique($name_array);
+			sort($name_array);
+			$data['cast'] = $name_array;
+		}
 		return $data;
 	}
 
