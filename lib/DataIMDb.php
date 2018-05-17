@@ -171,10 +171,16 @@ class DataIMDb
 		$data['title'] = null;
 		$data['date'] = null;
 		// Lets extract this from the title: <title>([\w\d\s:\-]+)\s+\(([\w\d\s]+)\)\s+-\s+Cast\s+-\s+IMDb<\/title>
-		if (preg_match('/<title>([\w\d\s:\-\.]+)\s+\(([\w\d\s]+)\)\s+-\s+Cast\s+-\s+IMDb<\/title>/', $page, $matches) === 1)
+		// more verbose: <title>([\w\d\s:\-\.\',\u0100-\uffff]]+)\s+\(([\w\d\s\-\u0100-\uffff]+)
+		// sick of this...: <title>([\u0020-\uffff]+)\(([\u0020-\uffff]+)\)\s
+		// <title>([\u0020-\uffff]+)(?:\(([\u0020-\uffff]+)\)\s)? in case date is not present
+		if (preg_match('/<title>([\x{0020}-\x{0027}\x{0029}-\x{ffff}]+)\s+(?:\(([\x{0020}-\x{ffff}]+)\)\s)?/u', $page, $matches) === 1)
 		{
-			$data['title'] = $matches[1];
-			$data['date'] = $matches[2];
+			$data['title'] = trim($matches[1]);
+			if (isset($matches[2]))
+			{
+				$data['date'] = trim($matches[2]);
+			}
 		}
 
 		$data['cast'] = null;

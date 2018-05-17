@@ -1,5 +1,6 @@
 <?php
-require_once('../lib/DataIMDb.php');
+//require_once('../lib/DataIMDb.php');
+require_once('/home/matt/github/imdb-datasource/lib/DataIMDb.php');
 
 $imdb = new DataIMDb();
 
@@ -40,6 +41,10 @@ while ($data = mysqli_fetch_assoc($result))
 	if (!is_null($data['died']))
 	{
 		$update_fields[] = '`died`="' . mysqli_real_escape_string($link, $data['died']) . '"';
+	}
+	if (!is_null($data['pic']))
+	{
+		$update_fields[] = '`pic`="' . mysqli_real_escape_string($link, $data['pic']) . '"';
 	}
 	if (count($update_fields) > 0)
 	{
