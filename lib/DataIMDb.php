@@ -101,57 +101,77 @@ class DataIMDb
 
 	private function parseMobileWebpage_Name($page)
 	{
-		$data = array();
-		// Actors Name: <section id="name-overview">\s+<h1>\s+([\w\d\s]+)[<smal>]*(\(\w+\))*[<\/smal>]*
-		$data['name'] = null;
-		if (preg_match('/<section id="name-overview">\s+<h1>\s+([\w\d\s]+)[<smal>]*(\(\w+\))*[<\/smal>]*/', $page, $matches) === 1)
+		date_default_timezone_set("UTC");
+		$data = array(
+			'name' => null,
+			'born' => null,
+			'died' => null,
+			'pic' => null,
+			'titles' => null,
+		);
+		// Firstly, we're gonna look for a specific javascript block that contains JSON to fill in blanks
+		// We need to use this as the best source of truth if possible
+		// mime-type: application/ld+json
+		if (preg_match('/<script type="application\/ld\+json">([\x{0000}-\x{ffff}]*?)<\/script>/u', $page, $matches) === 1)
 		{
-			if (isset($matches[1]))
+			$json = json_decode($matches[1], true);
+			$data['name'] = array_key_exists('name', $json) ? $json['name'] : null;
+			$data['born'] = array_key_exists('birthDate', $json) ? gmdate('Y-m-d', strtotime($json['birthDate'])) : null;
+			$data['died'] = array_key_exists('deathDate', $json) ? gmdate('Y-m-d', strtotime($json['deathDate'])) : null;
+			$data['pic'] = array_key_exists('image', $json) ? $json['image'] : 'https://m.media-amazon.com/images/G/01/imdb/images/nopicture/medium/name-2135195744._CB499558849_.png';
+			$data['ld-json'] = serialize($json);
+		}
+
+		// attempt to brute force this puppy out
+		if (!array_key_exists('ld-json', $data))
+		{
+			// Actors Name: <section id="name-overview">\s+<h1>\s+([\w\d\s]+)[<smal>]*(\(\w+\))*[<\/smal>]*
+			if (preg_match('/<section id="name-overview">\s+<h1>\s+([\x{0020}-\x{003b}\x{003d}-\x{ffff}]+)[<smal>]*(\(\w+\))*[<\/smal>]*/u', $page, $matches) === 1)
 			{
-				$data['name'] = trim($matches[1]);
+				if (isset($matches[1]))
+				{
+					$data['name'] = trim($matches[1]);
+					if (isset($matches[2]))
+					{
+						$data['name'] .= ' ' . trim($matches[2]);
+					}
+				}
+			}
+
+			// Date of birth: <time datetime="(\d+-\d+-\d+)" itemprop="birthDate">
+			if (preg_match('/<time datetime="(\d+-\d+-\d+)" itemprop="birthDate">/', $page, $matches) === 1)
+			{
+				
+				$dob = $matches[1];
+				$data['born'] = gmdate('Y-m-d', strtotime($dob));
+
+			}
+
+			// Date of death: <time datetime="(\d+-\d+-\d+)" itemprop="deathDate">
+			if (preg_match('/<time datetime="(\d+-\d+-\d+)" itemprop="deathDate">/', $page, $matches) === 1)
+			{
+				date_default_timezone_set("UTC");
+				$dob = $matches[1];
+				$data['died'] = gmdate('Y-m-d', strtotime($dob));
+
+			}
+
+			// mugshot: <img id="name-poster"[\s\r\n]?(?:[\w\d\s\r\n"\-=]+)src="([\w\d:/\.=\-@,]+)"[\s\r\n]?(?:data-src-x2="([\w\d:/\.=\-@,]+)")*
+			if (preg_match('/<img id="name-poster"[\s\r\n]?(?:[\w\d\s\r\n"\-=]+)src="([\w\d:\/\.=\-@,]+)"[\s\r\n]?(?:data-src-x2="([\w\d:\/\.=\-@,]+)")*/', $page, $matches) === 1)
+			{
 				if (isset($matches[2]))
 				{
-					$data['name'] .= ' ' . trim($matches[2]);
+					$data['pic'] = $matches[2];
+				}
+				else
+				{
+					$data['pic'] = $matches[1];
 				}
 			}
 		}
 
-		// Date of birth: <time datetime="(\d+-\d+-\d+)" itemprop="birthDate">
-		$data['born'] = null;
-		if (preg_match('/<time datetime="(\d+-\d+-\d+)" itemprop="birthDate">/', $page, $matches) === 1)
-		{
-			date_default_timezone_set("UTC");
-			$dob = $matches[1];
-			$data['born'] = gmdate('Y-m-d', strtotime($dob));
-
-		}
-
-		// Date of death: <time datetime="(\d+-\d+-\d+)" itemprop="deathDate">
-		$data['died'] = null;
-		if (preg_match('/<time datetime="(\d+-\d+-\d+)" itemprop="deathDate">/', $page, $matches) === 1)
-		{
-			date_default_timezone_set("UTC");
-			$dob = $matches[1];
-			$data['died'] = gmdate('Y-m-d', strtotime($dob));
-
-		}
-
-		// mugshot: <img id="name-poster"[\s\r\n]?(?:[\w\d\s\r\n"\-=]+)src="([\w\d:/\.=\-@,]+)"[\s\r\n]?(?:data-src-x2="([\w\d:/\.=\-@,]+)")*
-		$data['pic'] = null;
-		if (preg_match('/<img id="name-poster"[\s\r\n]?(?:[\w\d\s\r\n"\-=]+)src="([\w\d:\/\.=\-@,]+)"[\s\r\n]?(?:data-src-x2="([\w\d:\/\.=\-@,]+)")*/', $page, $matches) === 1)
-		{
-			if (isset($matches[2]))
-			{
-				$data['pic'] = $matches[2];
-			}
-			else
-			{
-				$data['pic'] = $matches[1];
-			}
-		}
-
-		// all titles on this bio page: tt\d+
 		$data['titles'] = null;
+		// all titles on this bio page: tt\d+
 		if (preg_match_all('/tt\d+/', $page, $matches) > 0)
 		{
 			// we need everything in $matches[0]
@@ -165,22 +185,14 @@ class DataIMDb
 
 	private function parseMobileWebpage_Title($page)
 	{
-		//echo $page;
-		$data = array();
+		$data = array(
+			'title' => null,
+			'cast' => null,
+		);
 
-		$data['title'] = null;
-		$data['date'] = null;
-		// Lets extract this from the title: <title>([\w\d\s:\-]+)\s+\(([\w\d\s]+)\)\s+-\s+Cast\s+-\s+IMDb<\/title>
-		// more verbose: <title>([\w\d\s:\-\.\',\u0100-\uffff]]+)\s+\(([\w\d\s\-\u0100-\uffff]+)
-		// sick of this...: <title>([\u0020-\uffff]+)\(([\u0020-\uffff]+)\)\s
-		// <title>([\u0020-\uffff]+)(?:\(([\u0020-\uffff]+)\)\s)? in case date is not present
-		if (preg_match('/<title>([\x{0020}-\x{0027}\x{0029}-\x{ffff}]+)\s+(?:\(([\x{0020}-\x{ffff}]+)\)\s)?/u', $page, $matches) === 1)
+		if (preg_match('/<title>([\x{0020}-\x{ffff}]+)\s+\-\s+Cast/u', $page, $matches) === 1)
 		{
 			$data['title'] = trim($matches[1]);
-			if (isset($matches[2]))
-			{
-				$data['date'] = trim($matches[2]);
-			}
 		}
 
 		$data['cast'] = null;

@@ -20,7 +20,7 @@ if (!$link || mysqli_connect_errno())
 }
 
 // get 10 people that we need to update
-$query = "SELECT `nm` FROM `names` WHERE `last_update`<NOW() ORDER BY `last_update` ASC LIMIT 10";
+$query = "SELECT `nm` FROM `names` WHERE `last_update`<NOW() ORDER BY `last_update` ASC LIMIT 50";
 $result = mysqli_query($link, $query);
 while ($data = mysqli_fetch_assoc($result))
 {
@@ -84,10 +84,6 @@ while ($data = mysqli_fetch_assoc($result))
 	if (!is_null($data['title']))
 	{
 		$update_fields[] = '`title`="' . mysqli_real_escape_string($link, $data['title']) . '"';
-	}
-	if (!is_null($data['date']))
-	{
-		$update_fields[] = '`date`="' . mysqli_real_escape_string($link, $data['date']) . '"';
 	}
 	if (count($update_fields) > 0)
 	{
