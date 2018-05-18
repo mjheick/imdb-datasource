@@ -20,7 +20,7 @@ if (!$link || mysqli_connect_errno())
 }
 
 // get 10 people that we need to update
-$query = "SELECT `nm` FROM `names` WHERE `last_update`<NOW() ORDER BY `last_update` ASC LIMIT 50";
+$query = "SELECT `nm` FROM `names` WHERE `last_update`<DATE_SUB(NOW(), INTERVAL 1 MONTH) ORDER BY `nm`,`last_update` ASC LIMIT 50";
 $result = mysqli_query($link, $query);
 while ($data = mysqli_fetch_assoc($result))
 {
@@ -71,7 +71,7 @@ while ($data = mysqli_fetch_assoc($result))
 mysqli_free_result($result);
 
 // get titles that we need to get people from
-$query = "SELECT `tt` FROM `titles` WHERE `last_update`<NOW() ORDER BY `last_update` ASC LIMIT 10";
+$query = "SELECT `tt` FROM `titles` WHERE `last_update`<DATE_SUB(NOW(), INTERVAL 1 MONTH) ORDER BY `tt`,`last_update` ASC LIMIT 10";
 $result = mysqli_query($link, $query);
 while ($data = mysqli_fetch_assoc($result))
 {
