@@ -2,9 +2,9 @@
 //require_once('../lib/DataIMDb.php');
 require_once('/home/matt/github/imdb-datasource/lib/DataIMDb.php');
 
-$names_start = "0";
+$names_start = "100";
 $names_length = "50";
-$titles_start = "0";
+$titles_start = "100";
 $titles_length = "50";
 $database_freshness = "INTERVAL 1 MONTH";
 
