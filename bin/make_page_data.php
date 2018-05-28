@@ -1,6 +1,6 @@
 <?php
-ini_set('memory_limit', '512M');
-/**
+ini_set('memory_limit', '2048M');
+ /**
  * MySQL Info
  */
 $db_host = 'localhost';
@@ -15,7 +15,7 @@ if (!$link || mysqli_connect_errno())
 	die('cannot connect to database [' . mysqli_connect_errno() . ']');
 }
 
-echo "Getting titles...";
+echo "Getting titles(m:".memory_get_usage().")...";
 $title = array();
 $query = 'SELECT * FROM `titles` WHERE (NOT `title` IS NULL)'; 
 $result = mysqli_query($link, $query);
@@ -35,9 +35,9 @@ while ($data = mysqli_fetch_assoc($result))
 	);
 }
 mysqli_free_result($result);
-echo count($title) . "\n";
+echo count($title) . "(m:".memory_get_usage().")\n";
 
-echo "Getting people...";
+echo "Getting people(m:".memory_get_usage().")...";
 $people = array();
 $query = 'SELECT * FROM `names` WHERE (NOT `name` IS NULL)';
 $result = mysqli_query($link, $query);
@@ -51,9 +51,9 @@ while ($data = mysqli_fetch_assoc($result))
 	);
 }
 mysqli_free_result($result);
-echo count($people) . "\n";
+echo count($people) . "(m:".memory_get_usage().")\n";
 
-echo "Getting tt2nm...";
+echo "Getting tt2nm(m:".memory_get_usage().")...";
 $tt2nm = array();
 $query = 'SELECT * FROM `tt2nm`';
 $result = mysqli_query($link, $query);
@@ -66,12 +66,12 @@ while ($data = mysqli_fetch_assoc($result))
 	$tt2nm[$data['tt']][] = $data['nm'];
 }
 mysqli_free_result($result);
-echo count($tt2nm) . "\n";
+echo count($tt2nm) . "(m:".memory_get_usage().")\n";
 
 $last_percent = "";
 $titles_index = 0;
 $titles_total = count($title);
-echo "Doing work...";
+echo "Doing work(m:".memory_get_usage().")...";
 $titles_to_remove = array();
 $list_of_decades = array();
 $decades_dead_or_alive = array();
@@ -82,7 +82,7 @@ foreach ($title as $key => $array)
 	$percent = intval(($titles_index / $titles_total) * 100);
 	if ($percent != $last_percent)
 	{
-		echo "%";
+		echo "%(m:".memory_get_usage().")";
 		$last_percent = $percent;
 	}
 
