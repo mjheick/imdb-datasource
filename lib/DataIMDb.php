@@ -4,28 +4,6 @@
 
 class DataIMDb
 {
-	private $IMDb_access_methods = array(
-		'website', // www.imdb.com
-		'mobile_website', // m.imdb.com
-		'api' // ?
-	);
-
-	private $IMDb_access_type = 'mobile_website';
-
-	public function __construct($access_type = 'mobile_website')
-	{
-		$this->setAccessMethod($access_type);
-	}
-
-	public function setAccessMethod($access_type)
-	{
-		if (!in_array($access_type, $this->IMDb_access_methods))
-		{
-			throw new Exception('invalid access method [' . $access_type . ']. need (' . join(',', $this->IMDb_access_methods) . ')');
-		}
-		$this->IMDb_access_type = $access_type;
-	}
-
 	// https://www.imdb.com/name/nm2091145/
 	// Alan Rickman -> nm0000614
 	// Sophie Turner (Iv) -> nm3849842
@@ -33,45 +11,24 @@ class DataIMDb
 	// David Fennessy -> nm5171734
 	public function getName($nm)
 	{
-		$data = array();
-		switch ($this->IMDb_access_type)
-		{
-			case 'website':
-				$page = $this->getWebpage('https://www.imdb.com/name/' . $nm . '/');
-				break;
-			case 'mobile_website':
-				$page = $this->getWebpage('https://m.imdb.com/name/' . $nm . '/');
-				$data = $this->parseMobileWebpage_Name($page);
-				break;
-			case 'api':
-				$this->unimplemented();
-				break;
-			default:
-				throw new Exception('invalid access type [' . $this->IMDb_access_type . ']');
-				break;
-		}
+		$data = [];
+		$page = $this->getWebpage('https://m.imdb.com/name/' . $nm . '/');
+		$data = $this->parseMobileWebpage_Name($page);
 		return $data;
 	}
 
 	// https://www.imdb.com/title/tt1844624/
+	// https://m.imdb.com/title/tt1454016/fullcredits/cast
 	public function getTitle($tt)
 	{
 		$data = array();
-		switch ($this->IMDb_access_type)
-		{
-			case 'website':
-				$page = $this->getWebpage('https://www.imdb.com/title/' . $tt . '/');
-				break;
-			case 'mobile_website': // https://m.imdb.com/title/tt1454016/fullcredits/cast
-				$page = $this->getWebpage('https://m.imdb.com/title/' . $tt . '/fullcredits/cast');
-				$data = $this->parseMobileWebpage_Title($page);
-				break;
-			case 'api':
-				$this->unimplemented();
-				break;
-			default:
-				throw new Exception('invalid access type [' . $this->IMDb_access_type . ']');
-		}
+		$page = $this->getWebpage('https://www.imdb.com/title/' . $tt . '/');
+		$page_data = $this->parseWebpage_Title($page);
+		$page = $this->getWebpage('https://m.imdb.com/title/' . $tt . '/fullcredits/cast');
+		$credit_data = $this->parseMobileWebpage_Title($page);
+
+		$data = $page_data + $credit_data; // old school merge
+
 		return $data;
 	}
 
@@ -179,6 +136,34 @@ class DataIMDb
 			$title_array = array_unique($title_array);
 			sort($title_array);
 			$data['titles'] = $title_array;
+		}
+		return $data;
+	}
+
+	private function parseWebpage_Title($page)
+	{
+		$data = array(
+			'main-title' => null,
+			'main-rating' => null,
+			'main-rating-count' => 0,
+		);
+
+		// Firstly, we're gonna look for a specific javascript block that contains JSON to fill in blanks
+		// We need to use this as the best source of truth if possible
+		// mime-type: application/ld+json
+		if (preg_match('/<script type="application\/ld\+json">([\x{0000}-\x{ffff}]*?)<\/script>/u', $page, $matches) === 1)
+		{
+			$json = json_decode($matches[1], true);
+			$data['main-title'] = array_key_exists('name', $json) ? $json['name'] : null;
+			$data['main-rating'] = array_key_exists('contentRating', $json) ? $json['contentRating'] : null;
+			$data['main-rating-count'] = array_key_exists('aggregateRating', $json) ? $json['aggregateRating']['ratingCount'] : 0;
+			$data['ld-json'] = serialize($json);
+		}
+
+		// attempt to brute force this puppy out
+		if (!array_key_exists('ld-json', $data))
+		{
+			$data['no-ld-json'] = true;
 		}
 		return $data;
 	}

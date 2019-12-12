@@ -6,7 +6,7 @@ $names_start = "0";
 $names_length = "50";
 $titles_start = "0";
 $titles_length = "50";
-$database_freshness = "INTERVAL 1 MONTH";
+$database_freshness = "INTERVAL 6 MONTH";
 
 $imdb = new DataIMDb();
 
@@ -23,6 +23,16 @@ $link = mysqli_connect($db_host, $db_user, $db_pass, $db_database);
 if (!$link || mysqli_connect_errno())
 {
 	die('cannot connect to database [' . mysqli_connect_errno() . ']');
+}
+
+// Cull invalid entries
+if (mt_rand(0, 1000) == 100) {
+	$query = "DELETE FROM `names` WHERE LENGTH(`nm`)<9";
+	mysqli_query($link, $query);
+	$query = "DELETE FROM `titles` WHERE LENGTH(`tt`)<9";
+	mysqli_query($link, $query);
+	$query = "DELETE FROM `tt2nm` WHERE LENGTH(`nm`)<9 OR LENGTH(`tt`)<9";
+	mysqli_query($link, $query);
 }
 
 // get 10 people that we need to update
