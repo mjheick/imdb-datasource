@@ -87,8 +87,10 @@ while ($data = mysqli_fetch_assoc($result))
 		{
 			$titles_query = "INSERT INTO `titles` (`tt`, `inserted`) VALUES " . '("' . mysqli_real_escape_string($link, $title) . '", NOW())';
 			mysqli_query($link, $titles_query);
-			echo "$titles_query\n";
+			//echo "$titles_query\n";
+			echo $title . " ";
 		}
+		echo "\n";
 	}
 }
 mysqli_free_result($result);
@@ -129,10 +131,20 @@ while ($data = mysqli_fetch_assoc($result))
 	// We need to deem if this entry is worthy of cast inclusion. This keeps records somewhat "okay"
 	// We do this based on IMDb rating and whether the title does not have any bad words in it
 	$include_title = false;
-	if (($data['main-rating-count'] > 1000) && (!in_array($data['title'], $bad_title_words)))
+	if (($data['main-rating-count'] > 1000) && (!in_array(utf8_encode($data['title']), $bad_title_words)))
 	{
-		echo "Adding [" . $data['title'] . "] with count=" . $data['main-rating-count'] . "\n";
 		$include_title = true;
+		foreach ($bad_title_words as $word)
+		{
+			if (strpos($data['title'], $word) !== false)
+			{
+				$include_title = false;
+			}
+		}
+		if ($include_title)
+		{
+			echo "Adding [" . $data['title'] . "] with count=" . $data['main-rating-count'] . "\n";
+		}
 	}
 
 	if ($include_title)
@@ -147,12 +159,14 @@ while ($data = mysqli_fetch_assoc($result))
 			{
 				$cast_query = "INSERT INTO `tt2nm` (`tt`, `nm`) VALUES " . '("' . mysqli_real_escape_string($link, $tt) . '", "' . mysqli_real_escape_string($link, $cast) . '")';
 				mysqli_query($link, $cast_query);
-				echo "$cast_query\n";
+				//echo "$cast_query\n";
 
 				$names_query = "INSERT INTO `names` (`nm`, `inserted`) VALUES " . '("' . mysqli_real_escape_string($link, $cast) . '", NOW())';
 				mysqli_query($link, $names_query);
-				echo "$names_query\n";
+				//echo "$names_query\n";
+				echo $cast . " ";
 			}
+			echo "\n";
 		}
 	}
 }
