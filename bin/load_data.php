@@ -1,6 +1,12 @@
 <?php
-//require_once('../lib/DataIMDb.php');
 require_once('/home/matt/github/imdb-datasource/lib/DataIMDb.php');
+
+/* A list of IMDb words in the title that might identify that this is not a movie */
+/* loose-match */
+$bad_title_words = [
+	'(Video Game',
+	'(TV Series',
+];
 
 $names_start = "0";
 $names_length = "50";
@@ -37,6 +43,7 @@ if (mt_rand(0, 1000) == 100) {
 
 // get 10 people that we need to update
 $query = "SELECT `nm` FROM `names` WHERE `last_update`<DATE_SUB(NOW(), ${database_freshness}) ORDER BY `nm`,`last_update` ASC LIMIT ${names_start}, ${names_length}";
+echo "$query\n";
 $result = mysqli_query($link, $query);
 while ($data = mysqli_fetch_assoc($result))
 {
@@ -101,6 +108,15 @@ while ($data = mysqli_fetch_assoc($result))
 	{
 		$update_fields[] = '`title`="' . mysqli_real_escape_string($link, $data['title']) . '"';
 	}
+	if (!is_null($data['main-rating']))
+	{
+		$update_fields[] = '`rating`="' . mysqli_real_escape_string($link, $data['main-rating']) . '"';
+	}
+	if (!is_null($data['main-rating-count']))
+	{
+		$update_fields[] = '`rating-count`="' . mysqli_real_escape_string($link, $data['main-rating-count']) . '"';
+	}
+
 	if (count($update_fields) > 0)
 	{
 		$update_fields[] = '`last_update`=NOW()';
@@ -110,21 +126,33 @@ while ($data = mysqli_fetch_assoc($result))
 		echo "$update_query\n";
 	}
 
-	// We have all the cast of this, so lets put that into tt2nm
-	// there's a unique key that prevents duplicate entries
-	if (!is_null($data['cast']))
+	// We need to deem if this entry is worthy of cast inclusion. This keeps records somewhat "okay"
+	// We do this based on IMDb rating and whether the title does not have any bad words in it
+	$include_title = false;
+	if (($data['main-rating-count'] > 1000) && (!in_array($data['title'], $bad_title_words)))
 	{
-		$cast_query_array = array();
-		$names_insert_array = array();
-		foreach ($data['cast'] as $cast)
-		{
-			$cast_query = "INSERT INTO `tt2nm` (`tt`, `nm`) VALUES " . '("' . mysqli_real_escape_string($link, $tt) . '", "' . mysqli_real_escape_string($link, $cast) . '")';
-			mysqli_query($link, $cast_query);
-			echo "$cast_query\n";
+		echo "Adding [" . $data['title'] . "] with count=" . $data['main-rating-count'] . "\n";
+		$include_title = true;
+	}
 
-			$names_query = "INSERT INTO `names` (`nm`, `inserted`) VALUES " . '("' . mysqli_real_escape_string($link, $cast) . '", NOW())';
-			mysqli_query($link, $names_query);
-			echo "$names_query\n";
+	if ($include_title)
+	{
+		// We have all the cast of this, so lets put that into tt2nm
+		// there's a unique key that prevents duplicate entries
+		if (!is_null($data['cast']))
+		{
+			$cast_query_array = array();
+			$names_insert_array = array();
+			foreach ($data['cast'] as $cast)
+			{
+				$cast_query = "INSERT INTO `tt2nm` (`tt`, `nm`) VALUES " . '("' . mysqli_real_escape_string($link, $tt) . '", "' . mysqli_real_escape_string($link, $cast) . '")';
+				mysqli_query($link, $cast_query);
+				echo "$cast_query\n";
+
+				$names_query = "INSERT INTO `names` (`nm`, `inserted`) VALUES " . '("' . mysqli_real_escape_string($link, $cast) . '", NOW())';
+				mysqli_query($link, $names_query);
+				echo "$names_query\n";
+			}
 		}
 	}
 }

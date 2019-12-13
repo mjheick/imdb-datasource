@@ -145,7 +145,7 @@ class DataIMDb
 		$data = array(
 			'main-title' => null,
 			'main-rating' => null,
-			'main-rating-count' => 0,
+			'main-rating-count' => null,
 		);
 
 		// Firstly, we're gonna look for a specific javascript block that contains JSON to fill in blanks
